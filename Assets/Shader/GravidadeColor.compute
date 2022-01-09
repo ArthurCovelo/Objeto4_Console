@@ -1,0 +1,47 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+struct Cube {
+    float3 position;
+    float4 color;
+    float mass;
+    float velocity;
+    int collisionCheck;
+};
+
+RWStructuredBuffer<Cube> cubes;
+
+float timer;
+int iteractions;
+
+float Rand(float2 co)
+{
+    return (frac(sin(dot(co.xy, float2(12.9898, 78.233))) * 4378.5453)) * 1;
+}
+
+[numthreads(10, 1, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    // TODO: insert actual code here!
+    Cube cube = cubes[id.x];
+
+    if (cube.collisionCheck == 0) {
+        float v = cube.velocity;
+        v += (9.8f / cube.mass) * timer;
+        cube.velocity = v;
+        cube.position.y -= cube.velocity * timer;
+    }
+    if (cube.position.y <= 1) {
+        cube.position.y = 1;
+
+        if (cube.collisionCheck == 0) {
+            float _r = Rand(float2(cube.color.r, cube.color.g));
+            float _g = Rand(float2(cube.color.g, cube.color.g));
+            float _b = Rand(float2(cube.color.r, cube.color.b));
+            cube.color = float4(_r, _g, _b, 1);
+        }
+        cube.collisionCheck = 1;
+    }
+
+    cubes[id.x] = cube;
+}
