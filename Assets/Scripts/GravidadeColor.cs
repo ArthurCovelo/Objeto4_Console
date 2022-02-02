@@ -149,32 +149,34 @@ public class GravidadeColor : MonoBehaviour
     }
     private void ProcessoGPU()
     {
+
         timer += Time.deltaTime;
+        int totalSize = 3 * sizeof(float) + 6 * sizeof(float) + 1 * sizeof(int);
 
-        for (int i = 0; i < dt.Length; i++)
+        ComputeBuffer buffer = new ComputeBuffer(dt.Length, totalSize);
+        buffer.SetData(dt);
+
+        cs.SetInt("cubesOnGround", OnGround);
+        cs.SetBuffer(0, "cubes", buffer);
+        cs.SetFloat("timer", timer);
+       
+        cs.Dispatch(0, (dt.Length / 10) + (dt.Length % 10), 1, 1);
+        buffer.GetData(dt);
+
+        for (int i = 0; i < gameObjects.Length; i++)
         {
-            if (dt[i].colCheck == 0)
-            {
-                float v = dt[i].velocidade;
-                v += (9.8f / dt[i].Mass) * timer;
-                dt[i].velocidade = v;
-                dt[i].position.y -= dt[i].velocidade * timer;
+            gameObjects[i].transform.position = dt[i].position;
+            gameObjects[i].GetComponent<MeshRenderer>().material.SetColor("_Color", dt[i].color);
+        }
 
-                if (dt[i].position.y <= 1 && dt[i].colCheck < 1)
-                {
-                    dt[i].position.y = 1;
-                    gameObjects[i].GetComponent<MeshRenderer>().material.SetColor("_Color", Random.ColorHSV());
-                    dt[i].colCheck = 1;
-                }
-                gameObjects[i].transform.position = dt[i].position;
+        buffer.Dispose();
 
-                if (dt[i].colCheck == 1)
-                {
-                    OnGround++; dt[i].colCheck = 2;
-                }
-            }
+        for (int i = 0; i < gameObjects.Length; i++)
+        {
+            if (dt[i].colCheck == 1) { OnGround++; dt[i].colCheck = 2; }
         }
     }
+    
     private void ProcessoCPU()
     {
         timer += Time.deltaTime;
